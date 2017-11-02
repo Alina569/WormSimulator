@@ -1,0 +1,15 @@
+
+infect_lcg.dat
+[9, 0, 25]
+
+
+infect_phys.dat
+[10, 0, 27]
+
+
+infect_unix_rand.dat
+[11, 0, 28]
+
+
+infect_vn.dat
+[9, 0, 106]
