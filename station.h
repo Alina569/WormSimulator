@@ -68,7 +68,7 @@ public:
 
 		// set x and y to the correct values based on scan pattern
 		this->subnetCount_++;
-        x = this->row();
+		x = this->row();
 
 		if (this->subnetCount_ == 4) { // change subnet
 			x = randValue_.unixRand() % 256;
