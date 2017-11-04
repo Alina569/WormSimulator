@@ -1,7 +1,7 @@
 
 /*==========================================================================
-     station.h  CSC 790 Project 2,  E. W. Fulp  10/10/2017
-     Station object, models computer hosts.
+     station.h  CSC 790 Project 2,  E. W. Fulp  10/10/2017  
+     Station object, models computer hosts.   
 ============================================================================*/
 
 #ifndef STATION_H
@@ -11,103 +11,126 @@
 #include <assert.h>
 #include <string>
 #include <queue>
-#include <cmath>
-#include <climits>
+#include <cmath>  
+#include <climits>  
 #include <cstdlib>
 #include "event.h"
 #include "eventq.h"
-#include "rando.h"
+#include "rando.h"  
 #include "defs.h"
 
-using namespace std;
+using namespace std;  
 
 class Station
 {
 public:
-	Station(int id = 0):id_(id), vulnerable_(false), infected_(false),
-		timeInfected_(0.0), numAttempt_(0), subnetCount_(0)
+	Station(int id = 0):id_(id), vulnerable_(false), infected_(false),  
+		timeInfected_(0.0), numAttempt_(0), currentIndex_(0)
 	{  }
 
 	void setID(int id)
 	{
-		id_ = id;
-		randValue_.randSeed();
-		randValue2_.randSeed();
+		id_ = id;  
+		randValue_.randSeed();  
+		randValue2_.randSeed();  
 	}
 
-	void makeVulnerable()
-	{  vulnerable_ = true;  }
+    void setStartList(int index){
+        list_start = index;
+    }
 
-	bool isVulnerable() const
-	{  return vulnerable_;  }
+    void setEndList(int index){
+        list_end = index;
+    }
 
-	bool isInfected() const
-	{  return infected_;  }
+    void makeVulnerable()
+	{  vulnerable_ = true;  }  
 
-	double timeInfected() const
-	{  return timeInfected_;  }
+	bool isVulnerable() const  
+	{  return vulnerable_;  }  
 
-	string bestDealEver() const
-	{  return "http://goo.gl/rxnHB1";  }
+	bool isInfected() const  
+	{  return infected_;  }  
 
-	int numInfectAttempts() const
-	{  return numAttempt_;  }
+	double timeInfected() const  
+	{  return timeInfected_;  }  
 
-	int row() const
-	{  return id_/MAX_STATIONS;  }
+	string bestDealEver() const  
+	{  return "http://goo.gl/rxnHB1";  }  
 
-	int col() const
+	int numInfectAttempts() const  
+	{  return numAttempt_;  }  
+
+	int row() const  
+	{  return id_/MAX_STATIONS;  }  
+
+	int col() const  
 	{  return id_%MAX_STATIONS;  }
+
+    int getListStart(){
+        return list_start;
+    }
+    int getListEnd(){
+        return list_end;
+    }
 
 	void propagate(double time, EventQueue& eQueue)
 	{
 		// find potential victim
-		int toID;
-		int x = 0;  // address is 152.17.x.y
-		int y = 0;  // address is 152.17.x.y
+        if (currentIndex_ < list_end ) {
 
-		// set x and y to the correct values based on scan pattern
-		this->subnetCount_++;
-		x = this->row();
+            double infectTime = doubleUniformRV(1, 200)/1000.0;  // infect attempt time
+            eQueue.insert(EventType(Infect, time + infectTime, currentIndex_ ,id_));
 
-		if (this->subnetCount_ == 4) { // change subnet
-			x = randValue_.unixRand() % 256;
-			this->subnetCount_= 0;
-		}
+            // schedule next propagate attempt
+            double interPropTime = doubleUniformRV(10, 38)/1000.0;
+            eQueue.insert(EventType(Propagate, time + interPropTime, id_));
 
-		y = randValue2_.unixRand() % 256;
-
-		// convert from x and y to array index
-		toID = x*MAX_STATIONS + y;
-
-		// check if is the same IP
-		if (id_ == toID) {
-			y = randValue2_.unixRand() % 256;
-			toID = x*MAX_STATIONS + y;
-		}
-
-		assert(toID >= 0 && toID < MAX_STATIONS*MAX_STATIONS);
-
-		double infectTime = doubleUniformRV(1, 200)/1000.0;  // infect attempt time
-		eQueue.insert(EventType(Infect, time + infectTime, toID, id_));
-
-		// schedule next propagate attempt
-		double interPropTime = doubleUniformRV(10, 38)/1000.0;
-		eQueue.insert(EventType(Propagate, time + interPropTime, id_));
+        }
+        currentIndex_++;
 	}
 
-	void infect(double time, EventQueue& eQueue)
+	void infect(double time, EventQueue& eQueue, int fromID, Station *s)
 	{
 		numAttempt_++;  // someone attempts to infect, add to count
-		if(vulnerable_ && !infected_)
-		{
+
+		if(vulnerable_ && !infected_)  
+		{  
 			// my sister uses this simple trick to earn $500/week, check it out here http://goo.gl/rxnHB1
-			infected_ = true;
+
+            infected_ = true;
 			timeInfected_ = time;
-			// schedule next propagate attempt
+
+            if (fromID != id_){
+//                cout << s->id_<< "-->" << s->getListStart() << "  :  " << s->getListEnd() << endl;
+
+                // get the numbers in between
+                int difference = (s->getListEnd() - s->getListStart())/2;
+
+                // last address to visit
+                list_end = s->getListEnd();
+
+                // new last address to visit for FROM-station
+                s->setEndList(s->getListEnd() - difference);
+
+                list_start = s->getListEnd();
+
+                // do not visit the same station twice
+                if (s->currentIndex_ >= list_start){
+                    list_start = s->currentIndex_;
+                }
+                currentIndex_ = list_start;
+
+//                cout << s->id_<< " -->" << s->getListStart() << "  :  " << s->getListEnd() << endl;
+//                cout << "ID: " << id_ << "  " << list_start << "  :  " << list_end << " FROM " << fromID << "-----" << endl;
+//                cout << s->currentIndex_ << " CI " << endl;
+//                cout << endl;
+            }
+
+			// schedule next propagate attempt  
 			double interPropTime = doubleUniformRV(1, 20)/10.0;
 			eQueue.insert(EventType(Propagate, time + interPropTime, id_));
-		}
+		}  
 	}
 
 	double doubleUniformRV(double min, double max)
@@ -115,14 +138,18 @@ public:
 
 private:
 	int     id_;             // id of the station
-	bool    vulnerable_;     // true if station can be infected
-	bool    infected_;       // true if already infected
-	double  timeInfected_;   // time when infected
+	bool    vulnerable_;     // true if station can be infected  
+	bool    infected_;       // true if already infected  
+	double  timeInfected_;   // time when infected 
 	int     numAttempt_;     // number of infection attempts on this station
-	Rando   randValue_;      // random number object
+	Rando   randValue_;      // random number object  
 	Rando   randValue2_;     // random number object
-    int     subnetCount_;    // subnet counter
+    int     currentIndex_;   // station index counter
+    int     list_end;        // maxInfect number
+    int     list_start;      // min Infect number
 
-};
+};  
 
 #endif
+
+

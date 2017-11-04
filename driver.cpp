@@ -25,10 +25,10 @@ int main(int argc, char* argv[])
                 return 1;  
 	}  
 
-        // rand() is used multiple places for simulation events, but not for the selection
-        // of stations by the worm, this is done by your custom random number generator  
-        int seedValue = atoi(argv[1]);  
-		srand(seedValue);
+    // rand() is used multiple places for simulation events, but not for the selection
+    // of stations by the worm, this is done by your custom random number generator
+    int seedValue = atoi(argv[1]);
+    srand(seedValue);
 
 	double time     = 0.0;
 	int numInfected = 0;
@@ -46,8 +46,12 @@ int main(int argc, char* argv[])
 	}
 
 	EventQueue eventQueue;
-	s[0].makeVulnerable();  
-	eventQueue.insert(EventType(Infect, 0.0, 0));
+	s[0].makeVulnerable();
+    s[0].setStartList(1);
+    s[0].setEndList(MAX_STATIONS * MAX_STATIONS);
+
+    // the event with the entire hit-list
+	eventQueue.insert(EventType(Infect, 0.0, 0, 0));
 
 	EventType currentEvent;
 	int toID;
@@ -60,13 +64,8 @@ int main(int argc, char* argv[])
 		toID = currentEvent.toID();
 		fromID = currentEvent.fromID();
 
-		// cout << currentEvent << '\n' << flush;
-		// displayNetwork(s);
-        // cout << " F ---> " << currentEvent.fromID_ <<  " T ---> " << currentEvent.toID_ <<" \n";
-
 		switch(currentEvent.event())
 		{
-
 			//--Propagate--------------------------------------------
 			case Propagate:
 				if(!allInfected(s))  
@@ -74,7 +73,7 @@ int main(int argc, char* argv[])
 				break;
 			//--Infect-----------------------------------------------
 			case Infect:
-				s[toID].infect(time, eventQueue);
+				s[toID].infect(time, eventQueue, fromID, &s[fromID]);
 				break;  
 			//--illegal event----------------------------------------
 			default:
