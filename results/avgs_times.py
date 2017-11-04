@@ -25,7 +25,7 @@ def get_info(file_name):
     return [avg_time, min_time, max_time]
 
 # all the files
-files = ["q1/data_lcg.dat", "q1/data_phys.dat", "q1/data_unix_rand.dat", "q1/data_vn.dat"]
+files = ["q1/data_lcg.dat", "q1/data_phys.dat", "q1/data_unix_rand.dat", "q1/data_vn.dat", "q3/data.dat"]
 
 for file_name in files:
     print()
