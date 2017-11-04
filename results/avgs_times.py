@@ -8,7 +8,7 @@ def get_info(file_name):
 
     times = []
 
-    for i in range(1, len(data)):
+    for i in range(1, len(data)-1,2):
         start_time = float(data[i-1][0])
         end_time = float(data[i][0])
 
@@ -25,7 +25,7 @@ def get_info(file_name):
     return [avg_time, min_time, max_time]
 
 # all the files
-files = ["data_lcg.dat", "data_phys.dat", "data_unix_rand.dat", "data_vn.dat"]
+files = ["q1/data_lcg.dat", "q1/data_phys.dat", "q1/data_unix_rand.dat", "q1/data_vn.dat"]
 
 for file_name in files:
     print()
