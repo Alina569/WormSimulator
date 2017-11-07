@@ -9,7 +9,8 @@
 #include "eventq.h"
 #include "station.h"
 
-void writeStats(fstream& dataFile, double time, int numInfected);  
+void writeStats(fstream& dataFile, double time, int numInfected);
+void writeStats1(fstream& dataFile, double time, int numInfected);
 void writeInfectionAttempts(Station* s);  
 
 void clearScreen();  
@@ -19,21 +20,24 @@ void displayNetwork(Station* s);
 
 int main(int argc, char* argv[])
 {
+
 	if(argc < 2)  
-	{
-		cout << "Usage: " << argv[0] << " seedValue \n";
+	{  
+		cout << "Usage: " << argv[0] << " seedValue \n";  
                 return 1;  
 	}  
 
-    // rand() is used multiple places for simulation events, but not for the selection
-    // of stations by the worm, this is done by your custom random number generator
-    int seedValue = atoi(argv[1]);
-    srand(seedValue);
+        // rand() is used multiple places for simulation events, but not for the selection
+        // of stations by the worm, this is done by your custom random number generator  
+        int seedValue = atoi(argv[1]);  
+	srand(seedValue);  
 
 	double time     = 0.0;
 	int numInfected = 0;
+	int numPatched = 0;
 
-	fstream dataFile("data.dat", ios::out);  
+	fstream dataFile("data.dat", ios::out);
+	fstream dataFile1("patch.dat", ios::out);
 
 	Station s[MAX_STATIONS*MAX_STATIONS];  // 152.17.x.y stations  
 	for(int i = 0; i < MAX_STATIONS*MAX_STATIONS; i++)  
@@ -47,15 +51,18 @@ int main(int argc, char* argv[])
 
 	EventQueue eventQueue;
 	s[0].makeVulnerable();
-    s[0].setStartList(1);
-    s[0].setEndList(MAX_STATIONS * MAX_STATIONS);
+	s[1].makeVulnerable();
+	// bad worm
+	eventQueue.insert(EventType(Infect, 0.0, 1, 0, 1)); // add new parameter type of worm
+	eventQueue.insert(EventType(Infect, 0.0, 0, 0, 0)); // add new parameter type of worm
 
-    // the event with the entire hit-list
-	eventQueue.insert(EventType(Infect, 0.0, 0, 0));
+	// insert a good worm
+
 
 	EventType currentEvent;
 	int toID;
 	int fromID;
+	int type;
 
 	while(!eventQueue.isEmpty())
 	{
@@ -63,31 +70,41 @@ int main(int argc, char* argv[])
 		time = currentEvent.time();
 		toID = currentEvent.toID();
 		fromID = currentEvent.fromID();
+		type = currentEvent.type();
+
+
+		// cout << currentEvent << '\n' << flush;
+		// displayNetwork(s);  
 
 		switch(currentEvent.event())
 		{
 			//--Propagate--------------------------------------------
 			case Propagate:
 				if(!allInfected(s))  
-					s[toID].propagate(time, eventQueue);
+					s[toID].propagate(time, eventQueue, type);
 				break;
 			//--Infect-----------------------------------------------
 			case Infect:
-				s[toID].infect(time, eventQueue, fromID, &s[fromID]);
+				s[toID].infect(time, eventQueue, type);
 				break;  
 			//--illegal event----------------------------------------
 			default:
 				cout << "Illegal event \n";
 				cout << "http://goo.gl/rxnHB1 \n";  
 		}
+		numPatched = 0;
+		numInfected = 0;
+		for(int i = 0; i < MAX_STATIONS*MAX_STATIONS; i++){
 
-		numInfected = 0;  
-		for(int i = 0; i < MAX_STATIONS*MAX_STATIONS; i++)
-			if(s[i].isInfected())  
-				numInfected++;  
-		writeStats(dataFile, time, numInfected);  
+			if(s[i].isInfected())
+				numInfected++;
+			if(s[i].isPatched())
+				numPatched++;
+		}
+		writeStats(dataFile, time, numInfected);
+		writeStats1(dataFile1, time, numPatched);
 	}
-	dataFile.close();  
+	dataFile.close();
 	writeInfectionAttempts(s);  
 
 	return 0;
@@ -134,28 +151,48 @@ void displayNetwork(Station* s)
 }  
 
 
-void writeStats(fstream& dataFile, double time, int numInfected)  
+void writeStats(fstream& dataFile, double time, int numInfected)
 {
 	static int prevNumInfected = -1;
 	static bool first = true;
 
-	if(numInfected != prevNumInfected)  
-	{  
+	if(numInfected != prevNumInfected)
+	{
 		if(!first)
 		{
 			dataFile << time << ' ' << prevNumInfected << '\n'<< flush;
 		}
 		dataFile << time << ' ' << numInfected << ' ' << '\n' << flush;
 		first = false;
-	}  
+	}
 	prevNumInfected = numInfected;
 }
+
+
+void writeStats1(fstream& dataFile, double time, int numInfected)
+{
+	static int prevNumInfected = -1;
+	static bool first = true;
+
+	if(numInfected != prevNumInfected)
+	{
+		if(!first)
+		{
+			dataFile << time << ' ' << prevNumInfected << '\n'<< flush;
+		}
+		dataFile << time << ' ' << numInfected << ' ' << '\n' << flush;
+		first = false;
+	}
+	prevNumInfected = numInfected;
+}
+
+
 
 void writeInfectionAttempts(Station* s)  
 {  
 	fstream dataFile("infect.dat", ios::out);  
 	for(int i = 0; i < MAX_STATIONS*MAX_STATIONS; i++)  
-	dataFile << i << ' ' << s[i].timeInfected() << ' ' << s[i].numInfectAttempts() << '\n' << flush;  
+	dataFile << i << ' ' << s[i].timeInfected() << ' ' << s[i].numInfectAttempts() << "  " << s[i].infectionType() << '\n' << flush;
 	dataFile.close();   
 }  
 
