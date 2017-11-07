@@ -25,20 +25,22 @@ struct EventType
 {
 	//=null constructor========================================
 	EventType(Event e = Infect, double time = 0, int toID = 0,
-		int fromID = 0): event_(e), time_(time),
-		toID_(toID), fromID_(fromID)
+		int fromID = 0, int type = 0): event_(e), time_(time),
+		toID_(toID), fromID_(fromID), wType_(type)
 	{ }
 
 	Event event() const {  return event_;  }
 	double time() const {  return time_;  }
 	int toID() const {  return toID_;  }  
-	int fromID() const {  return fromID_;  }  
+	int fromID() const {  return fromID_;  }
+	int type() const {return wType_; }
 
 	//=data members===========================================
 	Event       event_;   // event type
 	double      time_;    // time of event
 	int         toID_;    // intended receiver of the event
 	int         fromID_;  // creator of the event
+	int 		wType_;    // type of worm good or bad
  };
 
 //=overload << for Event==================================
